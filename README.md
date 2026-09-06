@@ -1,6 +1,6 @@
 # FreshBan
 
-> Panel de bannissement et de modération pour FiveM — moderne, sécurisé, et 100 % configurable en jeu.
+> Panel de bannissement et de modération pour FiveM moderne, sécurisé, et 100 % configurable en jeu.
 
 <p align="center">
   <img alt="version" src="https://img.shields.io/badge/version-2.0.0-e85d75">
