@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FreshBan V2</title>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    :root{
+        --accent:#e85d75;--accent-2:#f0a050;
+        --accent-soft:color-mix(in srgb, var(--accent) 22%, transparent);
+        --accent-mid:color-mix(in srgb, var(--accent) 40%, transparent);
+        --accent-glow:color-mix(in srgb, var(--accent) 45%, transparent);
+        /* Fond du panel piloté depuis Paramètres (glass vs solid) */
+        --glass-r:18;--glass-g:20;--glass-b:28;--glass-a:0.30;
+        --panel-bg:rgba(var(--glass-r),var(--glass-g),var(--glass-b),var(--glass-a));
+        --panel-blur:blur(40px) saturate(180%);
+        --glass:var(--panel-bg);
+        --glass-2:rgba(var(--glass-r),var(--glass-g),var(--glass-b),0.82);
+        --glass-hi:rgba(255,255,255,0.05);
+        --glass-hi2:rgba(255,255,255,0.09);
+        --stroke:rgba(255,255,255,0.12);
+        --stroke-soft:rgba(255,255,255,0.06);
+        --sunk:rgba(0,0,0,0.22);
+        --green:#4ade80;--green-soft:rgba(74,222,128,0.16);
+        --blue:#5b9dff;--blue-soft:rgba(91,157,255,0.16);
+        --red:#ff5f6d;--red-soft:rgba(255,95,109,0.16);
+        --amber:#f0a050;--amber-soft:rgba(240,160,80,0.16);
+        --discord:#5865f2;--discord-soft:rgba(88,101,242,0.18);
+        --text:#f5f6fa;--text-sec:#c2c6d4;--text-muted:#858ba0;
+        --font:'Plus Jakarta Sans',-apple-system,sans-serif;
+        --mono:'IBM Plex Mono',monospace;
+        --r-xl:0px;--r:0px;--r-sm:0px;--r-xs:0px;
+    }
+    body{font-family:var(--font);background:transparent;color:var(--text);overflow:hidden;height:100vh;width:100vw;display:flex;justify-content:center;align-items:center;user-select:none}
+
+    #app{display:none;width:1120px;height:86vh;max-height:640px;position:relative;overflow:hidden;
+        background:var(--panel-bg);
+        border:1px solid var(--stroke);
+        box-shadow:0 40px 120px rgba(0,0,0,.5),inset 0 1px 0 var(--glass-hi2),inset 0 0 0 1px rgba(255,255,255,.02);}
+    #app.open{display:flex;animation:appIn .5s cubic-bezier(.16,1,.3,1)}
+    #app::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:1;
+        background:
+            radial-gradient(120% 80% at 0% 0%, rgba(255,255,255,.10), transparent 42%),
+            radial-gradient(140% 90% at 100% 0%, color-mix(in srgb,var(--accent) 12%, transparent), transparent 46%),
+            radial-gradient(120% 120% at 100% 100%, rgba(0,0,0,.28), transparent 55%);}
+    #app.solid-bg{}
+    #app.solid-bg::before{opacity:.5}
+    @keyframes appIn{0%{opacity:0;transform:translateY(30px) scale(.96)}100%{opacity:1;transform:none}}
+    @keyframes fadeUp{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:none}}
+    @keyframes pulseTag{0%,100%{opacity:1}50%{opacity:.5}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes modalIn{0%{opacity:0;transform:scale(.94)}100%{opacity:1;transform:none}}
+    @keyframes dots{0%,20%{opacity:.2}50%{opacity:1}100%{opacity:.2}}
+
+    .splash{position:absolute;inset:0;z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;gap:22px;
+        background:var(--glass);border-radius:inherit}
+    .splash.show{display:flex}
+    .splash.hide{animation:splashOut .5s ease forwards}
+    @keyframes splashOut{to{opacity:0;visibility:hidden}}
+    .splash-logo{width:88px;height:88px;border-radius:0;background:linear-gradient(135deg,var(--discord),#7983f5);display:flex;align-items:center;justify-content:center;box-shadow:0 20px 50px rgba(88,101,242,.5),inset 0 2px 0 rgba(255,255,255,.25);animation:floaty 2.4s ease-in-out infinite}
+    @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+    .splash-logo svg{width:48px;height:48px;fill:#fff}
+    .splash-title{font-size:20px;font-weight:800;letter-spacing:-.4px}
+    .splash-sub{font-size:13px;color:var(--text-sec);display:flex;align-items:center;gap:3px}
+    .splash-sub .d{animation:dots 1.4s infinite}
+    .splash-sub .d:nth-child(2){animation-delay:.2s}.splash-sub .d:nth-child(3){animation-delay:.4s}
+    .splash-bar{width:200px;height:4px;border-radius:0;background:rgba(255,255,255,.08);overflow:hidden;position:relative}
+    .splash-bar::after{content:'';position:absolute;inset:0;width:40%;border-radius:0;background:linear-gradient(90deg,var(--discord),#7983f5);animation:slide 1.2s ease-in-out infinite}
+    @keyframes slide{0%{left:-40%}100%{left:100%}}
+
+    .sidebar{width:224px;flex-shrink:0;display:flex;flex-direction:column;padding:22px 15px;position:relative;z-index:2;
+        background:linear-gradient(180deg,rgba(255,255,255,.03),transparent);border-right:1px solid var(--stroke-soft)}
+    .brand{display:flex;align-items:center;gap:12px;padding:2px 8px 20px}
+    .brand-mark{width:42px;height:42px;border-radius:0;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:#fff;box-shadow:0 8px 24px var(--accent-glow),inset 0 1px 0 rgba(255,255,255,.35)}
+    .brand-txt{display:flex;flex-direction:column;gap:2px}
+    .brand-name{font-size:18px;font-weight:800;letter-spacing:-.5px;line-height:1}
+    .brand-name em{font-style:normal;background:linear-gradient(135deg,var(--accent),var(--accent-2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .brand-ver{font-size:9px;font-family:var(--mono);color:var(--text-muted);letter-spacing:1px}
+
+    .nav{display:flex;flex-direction:column;gap:4px;padding-top:8px;flex:1}
+    .nav-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:0;font-size:13.5px;font-weight:600;color:var(--text-muted);cursor:pointer;border:1px solid transparent;background:none;font-family:var(--font);text-align:left;transition:all .18s;position:relative}
+    .nav-item:hover{background:var(--glass-hi);color:var(--text-sec)}
+    .nav-item.active{background:var(--accent-soft);color:#fff;border-color:var(--accent-mid);box-shadow:0 4px 18px var(--accent-glow)}
+    .nav-item svg{flex-shrink:0}
+    .nav-item .nav-badge{margin-left:auto;font-size:10px;font-family:var(--mono);font-weight:600;background:rgba(255,255,255,.08);padding:2px 8px;border-radius:0;color:var(--text-sec)}
+    .nav-item.active .nav-badge{background:rgba(255,255,255,.2);color:#fff}
+    .nav-item.hidden{display:none}
+
+    .sidebar-foot{padding-top:14px;border-top:1px solid var(--stroke-soft)}
+    .profile-card{display:flex;align-items:center;gap:11px;padding:11px;border-radius:0;background:var(--glass-hi);border:1px solid var(--stroke-soft);transition:all .2s}
+    .profile-card:hover{background:var(--glass-hi2)}
+    .profile-av{width:40px;height:40px;border-radius:0;flex-shrink:0;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;object-fit:cover;overflow:hidden;position:relative}
+    .profile-av img{width:100%;height:100%;object-fit:cover;border-radius:0}
+    .profile-av .dc-badge{position:absolute;bottom:-3px;right:-3px;width:16px;height:16px;border-radius:50%;background:var(--discord);border:2px solid rgba(20,22,30,.9);display:flex;align-items:center;justify-content:center}
+    .profile-av .dc-badge svg{width:8px;height:8px;fill:#fff}
+    .profile-info{min-width:0;flex:1}
+    .profile-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .profile-grade{font-size:11px;font-weight:600;display:flex;align-items:center;gap:6px;margin-top:3px;color:var(--text-sec)}
+    .profile-grade .gd{width:7px;height:7px;border-radius:50%;box-shadow:0 0 8px currentColor}
+
+    .main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;z-index:2}
+    .topbar{height:70px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 26px;border-bottom:1px solid var(--stroke-soft)}
+    .topbar-title{font-size:19px;font-weight:800;letter-spacing:-.4px}
+    .topbar-sub{font-size:12px;color:var(--text-muted);font-weight:500;margin-top:2px}
+    .topbar-actions{display:flex;gap:9px;align-items:center}
+    .icon-btn{width:38px;height:38px;border-radius:0;border:1px solid var(--stroke);background:var(--glass-hi);color:var(--text-sec);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+    .icon-btn:hover{background:var(--glass-hi2);color:var(--text);border-color:var(--stroke)}
+    .icon-btn.close:hover{background:var(--red);border-color:var(--red);color:#fff}
+    .icon-btn.spinning svg{animation:spin .6s ease}
+    .dev-pill{display:none;align-items:center;font-size:10px;font-weight:700;padding:6px 11px;border-radius:0;background:var(--amber-soft);color:var(--amber);font-family:var(--mono);letter-spacing:.5px;border:1px solid rgba(240,160,80,.3)}
+    .dev-pill.show{display:inline-flex}
+
+    .page{flex:1;overflow:hidden;display:none;flex-direction:column}
+    .page.active{display:flex}
+
+    .toolbar{display:flex;align-items:center;gap:9px;padding:18px 26px 10px}
+    .search-wrap{flex:1;position:relative;display:flex;align-items:center}
+    .search-icon{position:absolute;left:14px;color:var(--text-muted);pointer-events:none}
+    .search-input{width:100%;height:42px;padding:0 16px 0 40px;background:var(--glass-hi);border:1px solid var(--stroke);border-radius:0;color:var(--text);font-family:var(--font);font-size:13px;font-weight:500;outline:none;transition:all .2s}
+    .search-input::placeholder{color:var(--text-muted)}
+    .search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:var(--glass-hi2)}
+    .filter-btn{height:42px;padding:0 16px;border-radius:0;border:1px solid var(--stroke);background:var(--glass-hi);color:var(--text-sec);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s;white-space:nowrap}
+    .filter-btn:hover{background:var(--glass-hi2);color:var(--text)}
+    .filter-btn.on{background:var(--accent-soft);border-color:var(--accent-mid);color:#fff}
+    .counter{font-size:12px;font-family:var(--mono);color:var(--text-muted);white-space:nowrap;padding:0 4px}
+
+    .scroll{flex:1;overflow-y:auto;padding:8px 18px 18px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.12) transparent}
+    .scroll::-webkit-scrollbar{width:7px}.scroll::-webkit-scrollbar-track{background:transparent}.scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:0}
+    .scroll::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.2)}
+
+    .card{display:flex;align-items:center;gap:13px;padding:12px 15px;margin-bottom:5px;border-radius:0;cursor:pointer;border:1px solid transparent;transition:background .18s ease,border-color .18s ease,transform .12s ease}
+    .card:hover{background:var(--glass-hi);border-color:var(--stroke-soft);transform:translateX(3px)}
+    .card.active{background:var(--accent-soft);border-color:var(--accent-mid)}
+    .card.self-card{background:var(--amber-soft);border-color:rgba(240,160,80,.3)}
+    .avatar{width:44px;height:44px;border-radius:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0;background:var(--glass-hi2);color:var(--text-sec);border:1px solid var(--stroke)}
+    .self-card .avatar{background:linear-gradient(135deg,rgba(240,160,80,.35),rgba(240,160,80,.08));border-color:rgba(240,160,80,.4);color:var(--amber)}
+    .info{flex:1;min-width:0}
+    .name-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:230px}
+    .tag{font-size:9px;font-weight:700;padding:2px 7px;border-radius:0;letter-spacing:.4px;text-transform:uppercase}
+    .tag-new{background:linear-gradient(135deg,var(--green),#22c55e);color:#08150c;animation:pulseTag 2.5s ease-in-out infinite}
+    .tag-self{background:var(--amber-soft);color:var(--amber);border:1px solid rgba(240,160,80,.35)}
+    .tag-dev{background:var(--blue-soft);color:var(--blue);border:1px solid rgba(91,157,255,.3);font-size:8px}
+    .meta{font-size:11px;font-family:var(--mono);color:var(--text-muted);margin-top:4px;display:flex;gap:14px}
+    .dist{font-size:11px;font-family:var(--mono);font-weight:500;color:var(--text-muted);white-space:nowrap;flex-shrink:0}
+    .dist.near{color:var(--green)}
+    .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:12px}
+    .empty svg{opacity:.2}.empty-text{font-size:14px;color:var(--text-muted);font-weight:500}
+    .loading{display:flex;justify-content:center;padding:50px}
+    .spinner{width:32px;height:32px;border:3px solid var(--stroke);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+
+    .ban-card{padding:15px 17px;margin-bottom:7px;border-radius:0;border:1px solid var(--stroke-soft);background:var(--glass-hi);transition:all .16s;animation:fadeUp .3s ease both}
+    .ban-card:hover{border-color:var(--stroke);background:var(--glass-hi2)}
+    .ban-card.inactive{opacity:.5}
+    .ban-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:11px}
+    .ban-player{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .ban-id-tag{font-size:10px;font-family:var(--mono);font-weight:600;padding:3px 9px;border-radius:0;background:var(--accent-soft);color:#fff;letter-spacing:.3px}
+    .ban-status{font-size:9px;font-weight:700;padding:3px 9px;border-radius:0;text-transform:uppercase;letter-spacing:.5px}
+    .ban-status.active-ban{background:var(--red-soft);color:var(--red)}
+    .ban-status.perm-ban{background:rgba(255,95,109,.28);color:#ff8a94}
+    .ban-status.expired-ban{background:rgba(150,150,170,.15);color:#9096a8}
+    .ban-status.unbanned{background:var(--green-soft);color:var(--green)}
+    .ban-actions{display:flex;gap:7px;flex-shrink:0}
+    .ban-act-btn{height:33px;padding:0 13px;border-radius:0;border:1px solid var(--stroke);background:var(--glass-hi);color:var(--text-sec);font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s}
+    .ban-act-btn:hover{background:var(--glass-hi2);color:var(--text)}
+    .ban-act-btn.edit-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-soft)}
+    .ban-act-btn.unban-btn:hover{border-color:var(--green);color:var(--green);background:var(--green-soft)}
+    .ban-details{display:flex;flex-wrap:wrap;gap:18px}
+    .ban-detail{display:flex;flex-direction:column;gap:3px}
+    .ban-detail-label{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px}
+    .ban-detail-value{font-size:12px;font-weight:500;color:var(--text-sec);font-family:var(--mono)}
+    .ban-reason{font-size:12px;color:var(--text-sec);margin-top:10px;padding:9px 13px;background:rgba(0,0,0,.2);border-radius:0;border-left:3px solid var(--accent);font-style:italic}
+
+    .ban-panel{border-top:1px solid var(--stroke-soft);padding:18px 26px 20px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.15));display:none}
+    .ban-panel.show{display:block;animation:fadeUp .28s ease}
+    .ban-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+    .ban-title{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+    .ban-title .tn{color:var(--accent)}.ban-title .ti{font-size:11px;font-family:var(--mono);color:var(--text-muted);background:var(--glass-hi);padding:3px 9px;border-radius:0}
+    .btn-cancel{font-size:12px;font-weight:500;font-family:var(--font);color:var(--text-sec);cursor:pointer;padding:7px 14px;border-radius:0;background:var(--glass-hi);border:1px solid var(--stroke);transition:all .15s}
+    .btn-cancel:hover{background:var(--glass-hi2);color:var(--text)}
+    .ban-form{display:flex;flex-direction:column;gap:12px}
+    .dur-label{font-size:11px;font-weight:600;color:var(--text-sec);text-transform:uppercase;letter-spacing:.5px}
+    .dur-grid{display:flex;flex-wrap:wrap;gap:7px}
+    .dur-btn{padding:7px 15px;font-size:12px;font-weight:600;font-family:var(--mono);border-radius:0;background:var(--glass-hi);border:1px solid var(--stroke);color:var(--text-sec);cursor:pointer;transition:all .15s}
+    .dur-btn:hover{background:var(--glass-hi2);color:var(--text)}
+    .dur-btn.on{background:var(--accent-soft);border-color:var(--accent-mid);color:#fff}
+    .dur-btn.perm-btn{color:var(--red);border-color:rgba(255,95,109,.25)}
+    .dur-btn.perm-btn.on{background:var(--red);color:#fff;border-color:var(--red)}
+    .form-input{flex:1;height:42px;padding:0 16px;background:var(--glass-hi);border:1px solid var(--stroke);border-radius:0;color:var(--text);font-family:var(--font);font-size:13px;font-weight:500;outline:none;transition:all .2s;width:100%}
+    .form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+    .form-input::placeholder{color:var(--text-muted)}
+    .action-row{display:flex;gap:10px}
+    .btn-primary{height:46px;flex:1;background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 72%, #000));border:none;border-radius:0;color:#fff;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.3px;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 6px 20px var(--accent-glow)}
+    .btn-primary:hover{filter:brightness(1.12);box-shadow:0 10px 30px var(--accent-glow);transform:translateY(-1px)}
+    .btn-primary:active{transform:translateY(0) scale(.99)}
+    .btn-primary:disabled{opacity:.35;cursor:not-allowed;filter:none;box-shadow:none;transform:none}
+    .btn-kick{height:46px;padding:0 22px;background:var(--amber-soft);border:1px solid rgba(240,160,80,.35);border-radius:0;color:var(--amber);font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+    .btn-kick:hover{background:var(--amber);color:#1a1206}
+    .btn-kick:disabled{opacity:.35;cursor:not-allowed}
+    .btn-kick.hidden{display:none}
+
+    .section-head{display:flex;align-items:center;justify-content:space-between;padding:18px 26px 10px}
+    .section-head h3{font-size:15px;font-weight:700}
+    .section-head p{font-size:12px;color:var(--text-muted);margin-top:3px}
+    .btn-add{height:40px;padding:0 18px;border-radius:0;border:1px solid var(--accent-mid);background:var(--accent-soft);color:#fff;font-family:var(--font);font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .15s}
+    .btn-add:hover{background:var(--accent);box-shadow:0 6px 18px var(--accent-glow)}
+    .grade-card{border:1px solid var(--stroke-soft);border-radius:0;background:var(--glass-hi);margin-bottom:13px;overflow:hidden;animation:fadeUp .3s ease both}
+    .grade-head{display:flex;align-items:center;gap:12px;padding:15px 17px;border-bottom:1px solid var(--stroke-soft)}
+    .grade-dot{width:13px;height:13px;border-radius:0;flex-shrink:0;box-shadow:0 0 10px currentColor}
+    .grade-name{font-size:15px;font-weight:700}
+    .grade-key{font-size:10.5px;font-family:var(--mono);color:var(--text-muted);background:rgba(0,0,0,.2);padding:3px 9px;border-radius:0}
+    .grade-ace{font-size:10.5px;font-family:var(--mono);color:var(--text-muted);margin-left:auto}
+    .grade-del{width:32px;height:32px;border-radius:0;border:1px solid var(--stroke);background:var(--glass-hi);color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+    .grade-del:hover{border-color:var(--red);color:var(--red);background:var(--red-soft)}
+    .grade-body{padding:16px 17px}
+    .perm-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-bottom:15px}
+    .perm-toggle{display:flex;align-items:center;gap:11px;padding:10px 13px;border-radius:0;background:rgba(0,0,0,.18);border:1px solid var(--stroke-soft);cursor:pointer;transition:all .15s}
+    .perm-toggle:hover{border-color:var(--stroke)}
+    .perm-toggle .sw{width:38px;height:22px;border-radius:0;background:rgba(255,255,255,.12);position:relative;flex-shrink:0;transition:all .2s}
+    .perm-toggle .sw::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:0;background:#c9cdd8;transition:all .22s cubic-bezier(.16,1,.3,1)}
+    .perm-toggle.on .sw{background:var(--accent);box-shadow:0 0 12px var(--accent-glow)}
+    .perm-toggle.on .sw::after{left:18px;background:#fff}
+    .perm-txt{min-width:0}
+    .perm-label{font-size:12.5px;font-weight:600}
+    .perm-desc{font-size:10.5px;color:var(--text-muted);margin-top:2px}
+    .grade-foot{display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+    .maxdur-wrap{display:flex;align-items:center;gap:9px}
+    .maxdur-wrap label{font-size:11.5px;color:var(--text-sec);font-weight:600}
+    .maxdur-input{width:120px;height:36px;padding:0 13px;background:rgba(0,0,0,.2);border:1px solid var(--stroke);border-radius:0;color:var(--text);font-family:var(--mono);font-size:12px;outline:none}
+    .maxdur-input:focus{border-color:var(--accent)}
+    .btn-save-grade{margin-left:auto;height:38px;padding:0 20px;border-radius:0;border:none;background:var(--accent);color:#fff;font-family:var(--font);font-size:12.5px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;box-shadow:0 4px 16px var(--accent-glow)}
+    .btn-save-grade:hover{filter:brightness(1.12)}
+    .btn-save-grade.saved{background:var(--green);color:#08150c;box-shadow:none}
+
+    .settings-block{border:1px solid var(--stroke-soft);border-radius:0;background:var(--glass-hi);margin-bottom:15px;overflow:hidden}
+    .settings-block-head{padding:15px 19px;border-bottom:1px solid var(--stroke-soft)}
+    .settings-block-head h4{font-size:14px;font-weight:700;display:flex;align-items:center;gap:9px}
+    .settings-block-head p{font-size:11.5px;color:var(--text-muted);margin-top:4px}
+    .settings-block-body{padding:17px 19px}
+    .field{margin-bottom:14px}.field:last-child{margin-bottom:0}
+    .field label{display:block;font-size:11.5px;font-weight:600;color:var(--text-sec);margin-bottom:7px}.field label .hint{font-weight:500;color:var(--text-muted);font-size:10px}
+    .field input[type=text]{width:100%;height:42px;padding:0 15px;background:rgba(0,0,0,.2);border:1px solid var(--stroke);border-radius:0;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;transition:all .2s}
+    .field input[type=text]:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+    .field input::placeholder{color:var(--text-muted);font-family:var(--font)}
+    .color-row{display:flex;align-items:center;gap:15px;flex-wrap:wrap}
+    .color-preview{width:60px;height:60px;border-radius:0;border:2px solid var(--stroke);flex-shrink:0;box-shadow:0 6px 20px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.2)}
+    .presets{display:flex;gap:9px;flex-wrap:wrap;flex:1}
+    .preset{width:36px;height:36px;border-radius:0;cursor:pointer;border:2px solid transparent;transition:all .15s;box-shadow:inset 0 1px 0 rgba(255,255,255,.2)}
+    .preset:hover{transform:scale(1.14)}
+    .preset.sel{border-color:#fff;box-shadow:0 0 0 2px rgba(0,0,0,.3),0 0 14px rgba(255,255,255,.4)}
+    .native-color{width:48px;height:38px;border:1px solid var(--stroke);border-radius:0;background:rgba(0,0,0,.2);cursor:pointer;padding:3px}
+    .settings-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:8px}
+    .btn-ghost{height:42px;padding:0 20px;border-radius:0;border:1px solid var(--stroke);background:var(--glass-hi);color:var(--text-sec);font-family:var(--font);font-size:12.5px;font-weight:600;cursor:pointer;transition:all .15s}
+    .btn-ghost:hover{background:var(--glass-hi2);color:var(--text)}
+    .btn-solid{height:42px;padding:0 22px;border-radius:0;border:none;background:var(--accent);color:#fff;font-family:var(--font);font-size:12.5px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:7px;box-shadow:0 4px 16px var(--accent-glow)}
+    .btn-solid:hover{filter:brightness(1.12)}
+    .btn-solid.saved{background:var(--green);color:#08150c;box-shadow:none}
+    .btn-solid.discord-btn{background:var(--discord);box-shadow:0 4px 16px rgba(88,101,242,.4)}
+
+    .assign-row{display:flex;align-items:center;gap:12px;padding:12px 15px;border-radius:0;background:rgba(0,0,0,.18);border:1px solid var(--stroke-soft);margin-bottom:7px}
+    .assign-main{font-family:var(--mono);font-size:11.5px;color:var(--text-sec);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .assign-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:0;text-transform:uppercase;letter-spacing:.4px}
+    .assign-lock{font-size:9px;color:var(--text-muted);font-family:var(--mono)}
+    .assign-del{width:32px;height:32px;border-radius:0;border:1px solid var(--stroke);background:var(--glass-hi);color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+    .assign-del:hover{border-color:var(--red);color:var(--red);background:var(--red-soft)}
+    .add-row{display:flex;gap:9px;margin-top:11px;flex-wrap:wrap}
+    .add-row input{flex:1;min-width:170px;height:42px;padding:0 15px;background:rgba(0,0,0,.2);border:1px solid var(--stroke);border-radius:0;color:var(--text);font-family:var(--mono);font-size:12px;outline:none}
+    .add-row input:focus{border-color:var(--accent)}
+    .add-row select{height:42px;padding:0 14px;background:rgba(0,0,0,.2);border:1px solid var(--stroke);border-radius:0;color:var(--text);font-family:var(--font);font-size:12.5px;font-weight:600;outline:none;cursor:pointer}
+    .add-row select option{background:#1a1c24}
+    .disabled-note{font-size:12px;color:var(--text-muted);padding:14px;text-align:center;background:rgba(0,0,0,.15);border-radius:0;border:1px dashed var(--stroke)}
+    .advanced-toggle{font-size:11.5px;color:var(--text-muted);cursor:pointer;margin-top:12px;display:inline-flex;align-items:center;gap:6px;font-weight:600}
+    .advanced-toggle:hover{color:var(--text-sec)}
+    .advanced-box{display:none;margin-top:12px}
+    .advanced-box.show{display:block;animation:fadeUp .25s ease}
+
+    .modal-overlay{display:none;position:absolute;inset:0;background:rgba(6,7,10,.7);z-index:100;justify-content:center;align-items:center}
+    .modal-overlay.show{display:flex}
+    .modal{width:470px;background:var(--glass-2);border:1px solid var(--stroke);border-radius:0;padding:26px;animation:modalIn .25s ease;box-shadow:0 30px 80px rgba(0,0,0,.6),inset 0 1px 0 var(--glass-hi2)}
+    .modal-title{font-size:17px;font-weight:700;margin-bottom:5px;display:flex;align-items:center;gap:9px}
+    .modal-sub{font-size:12px;color:var(--text-muted);margin-bottom:20px;font-family:var(--mono)}
+    .modal-field{margin-bottom:15px}
+    .modal-field label{display:block;font-size:11px;font-weight:600;color:var(--text-sec);text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px}
+    .modal-field input,.modal-field textarea{width:100%;padding:11px 15px;background:rgba(0,0,0,.25);border:1px solid var(--stroke);border-radius:0;color:var(--text);font-family:var(--font);font-size:13px;outline:none;transition:all .2s}
+    .modal-field textarea{resize:vertical;min-height:62px}
+    .modal-field input:focus,.modal-field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+    .modal-field .current{font-size:11px;color:var(--text-muted);margin-top:5px;font-family:var(--mono)}
+    .modal-actions{display:flex;gap:9px;margin-top:20px}
+    .modal-btn{flex:1;height:44px;border-radius:0;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid var(--stroke);display:flex;align-items:center;justify-content:center;gap:6px}
+    .modal-btn.cancel-m{background:var(--glass-hi);color:var(--text-sec)}
+    .modal-btn.cancel-m:hover{background:var(--glass-hi2);color:var(--text)}
+    .modal-btn.save-m{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .modal-btn.save-m:hover{filter:brightness(1.12)}
+    .modal-btn.unban-m{background:var(--green);color:#08150c;border-color:var(--green)}
+    .confirm-bar{display:none;padding:11px 15px;background:var(--red-soft);border:1px solid rgba(255,95,109,.25);border-radius:0;margin-top:10px;gap:8px;align-items:center;justify-content:space-between;font-size:12px;font-weight:600;color:var(--red)}
+    .confirm-bar.show{display:flex}
+    .confirm-btns{display:flex;gap:7px}
+    .confirm-btns button{padding:6px 15px;border-radius:0;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer;border:none;transition:all .15s}
+    .confirm-yes{background:var(--red);color:#fff}
+    .confirm-no{background:var(--glass-hi);color:var(--text-sec);border:1px solid var(--stroke) !important}
+
+    .modal.modal-lg{width:560px}
+    .mi-av{width:34px;height:34px;border-radius:0;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;flex-shrink:0}
+    .modal-title .ban-id-tag{margin-left:auto;font-size:11px}
+    .modal .dur-grid{display:flex;flex-wrap:wrap;gap:7px}
+    .modal .form-input{background:var(--sunk);height:42px}
+    .modal-btn.kick-m{background:var(--amber-soft);color:var(--amber);border-color:rgba(240,160,80,.4);flex:0 0 auto;padding:0 18px}
+    .modal-btn.kick-m:hover{background:var(--amber);color:#1a1206}
+    .modal-btn.kick-m.hidden{display:none}
+    .modal-btn.ban-m{background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 72%,#000));color:#fff;border-color:transparent;box-shadow:0 6px 20px var(--accent-glow)}
+    .modal-btn.ban-m:hover{filter:brightness(1.12)}
+    .modal-btn.ban-m:disabled{opacity:.4;cursor:not-allowed;filter:none;box-shadow:none}
+
+    .bg-modes{display:flex;gap:10px;margin-bottom:14px}
+    .bg-mode{flex:1;padding:14px;border:1px solid var(--stroke);background:var(--sunk);cursor:pointer;transition:all .18s;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+    .bg-mode:hover{border-color:var(--stroke)}
+    .bg-mode.on{border-color:var(--accent);background:var(--accent-soft)}
+    .bg-mode .bgm-ic{width:38px;height:26px;border:1px solid var(--stroke);position:relative;overflow:hidden}
+    .bg-mode.glass-m .bgm-ic{background:linear-gradient(135deg,rgba(255,255,255,.25),rgba(255,255,255,.05));}
+    .bg-mode.solid-m .bgm-ic{background:#2a2e3a}
+    .bg-mode .bgm-t{font-size:13px;font-weight:700}
+    .bg-mode .bgm-d{font-size:10.5px;color:var(--text-muted)}
+    .slider-row{display:flex;align-items:center;gap:12px}
+    .slider-row input[type=range]{flex:1;-webkit-appearance:none;height:6px;background:var(--sunk);outline:none;border:1px solid var(--stroke)}
+    .slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;background:var(--accent);cursor:pointer;box-shadow:0 0 10px var(--accent-glow)}
+    .slider-val{font-family:var(--mono);font-size:12px;color:var(--text-sec);min-width:44px;text-align:right}
+
+    .notif-wrap{position:fixed;top:22px;right:22px;z-index:10000;display:flex;flex-direction:column;gap:9px;pointer-events:none}
+    .notif{padding:14px 20px;border-radius:0;font-size:13px;font-weight:600;background:var(--glass-2);border:1px solid var(--stroke);color:var(--text);box-shadow:0 12px 44px rgba(0,0,0,.5);animation:notifIn .3s ease,notifOut .35s ease 4.5s forwards;max-width:420px;pointer-events:auto;display:flex;align-items:center;gap:11px}
+    .notif .nd{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+    .notif.success .nd{background:var(--green);box-shadow:0 0 10px var(--green)}
+    .notif.error .nd{background:var(--red);box-shadow:0 0 10px var(--red)}
+    .notif.info .nd{background:var(--blue);box-shadow:0 0 10px var(--blue)}
+    @keyframes notifIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+    @keyframes notifOut{from{opacity:1}to{opacity:0;transform:translateY(-8px)}}
+</style>
+</head>
+<body>
+<div id="app">
+    <div class="splash" id="splash">
+        <div class="splash-logo"><svg viewBox="0 0 24 24"><path d="M20.317 4.369a19.79 19.79 0 00-4.885-1.515.074.074 0 00-.079.037c-.211.375-.444.865-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.1 13.1 0 01-1.872-.892.077.077 0 01-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.009c.12.099.246.198.373.292a.077.077 0 01-.006.127 12.3 12.3 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.84 19.84 0 006.002-3.03.077.077 0 00.032-.056c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.028zM8.02 15.331c-1.183 0-2.157-1.086-2.157-2.42 0-1.332.955-2.42 2.157-2.42 1.21 0 2.176 1.098 2.157 2.42 0 1.334-.956 2.42-2.157 2.42zm7.975 0c-1.183 0-2.157-1.086-2.157-2.42 0-1.332.955-2.42 2.157-2.42 1.21 0 2.176 1.098 2.157 2.42 0 1.334-.946 2.42-2.157 2.42z"/></svg></div>
+        <div class="splash-title">Connexion à Discord</div>
+        <div class="splash-sub">Récupération de ton profil<span class="d">.</span><span class="d">.</span><span class="d">.</span></div>
+        <div class="splash-bar"></div>
+    </div>
+
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-mark">FB</div>
+            <div class="brand-txt">
+                <div class="brand-name"><em>Fresh</em>Ban</div>
+                <div class="brand-ver">PANEL v2.0</div>
+            </div>
+        </div>
+        <nav class="nav">
+            <button class="nav-item active" data-tab="players" onclick="switchTab('players')">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Joueurs <span class="nav-badge" id="navPlayers">0</span>
+            </button>
+            <button class="nav-item" data-tab="bans" id="navBansBtn" onclick="switchTab('bans')">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                Bannissements <span class="nav-badge" id="navBans">-</span>
+            </button>
+            <button class="nav-item hidden" data-tab="grades" id="navGradesBtn" onclick="switchTab('grades')">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2l7 4v6c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6l7-4z"/><path d="M9 12l2 2 4-4"/></svg>
+                Grades &amp; Perms
+            </button>
+            <button class="nav-item hidden" data-tab="settings" id="navSettingsBtn" onclick="switchTab('settings')">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Paramètres
+            </button>
+        </nav>
+        <div class="sidebar-foot">
+            <div class="profile-card">
+                <div class="profile-av" id="profileAv">?</div>
+                <div class="profile-info">
+                    <div class="profile-name" id="profileName">Administrateur</div>
+                    <div class="profile-grade"><span class="gd" id="profileDot"></span><span id="profileGrade">-</span></div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <div class="main">
+        <div class="topbar">
+            <div>
+                <div class="topbar-title" id="pageTitle">Joueurs</div>
+                <div class="topbar-sub" id="pageSub">Gérez les joueurs connectés</div>
+            </div>
+            <div class="topbar-actions">
+                <span class="dev-pill" id="devPill">DEV MODE</span>
+                <button class="icon-btn" id="btnRefresh" onclick="doRefresh()" title="Actualiser"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></button>
+                <button class="icon-btn close" onclick="doClose()" title="Fermer (ESC)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+        </div>
+
+        <div class="page active" id="pagePlayers">
+            <div class="toolbar">
+                <div class="search-wrap">
+                    <span class="search-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+                    <input type="text" class="search-input" id="searchPlayers" placeholder="Rechercher un joueur..." oninput="renderPlayers()">
+                </div>
+                <button class="filter-btn" id="fNearby" onclick="toggleF('nearby')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Proches</button>
+                <button class="filter-btn" id="fNew" onclick="toggleF('new')">&#9733; Nouveaux</button>
+                <span class="counter" id="counterPlayers">0/0</span>
+            </div>
+            <div class="scroll" id="playerList"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+
+        <div class="page" id="pageBans">
+            <div class="toolbar">
+                <div class="search-wrap">
+                    <span class="search-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+                    <input type="text" class="search-input" id="searchBans" placeholder="Rechercher par nom, ban ID, raison, staff..." oninput="renderBans()">
+                </div>
+                <button class="filter-btn" id="fActiveOnly" onclick="toggleBanFilter('active')">Actifs</button>
+                <button class="filter-btn" id="fPermOnly" onclick="toggleBanFilter('perm')">Perm</button>
+                <span class="counter" id="counterBans">0</span>
+            </div>
+            <div class="scroll" id="banList"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+
+        <div class="page" id="pageGrades">
+            <div class="section-head">
+                <div><h3>Grades &amp; Permissions</h3><p>Activez les permissions de chaque grade en direct</p></div>
+                <button class="btn-add" onclick="openGradeModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nouveau grade</button>
+            </div>
+            <div class="scroll" id="gradesList"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+
+        <div class="page" id="pageSettings">
+            <div class="scroll" id="settingsScroll"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="sanctionModal">
+        <div class="modal modal-lg">
+            <div class="modal-title"><span class="mi-av" id="sancAv">?</span><span>Sanctionner <span style="color:var(--accent)" id="sancName">-</span></span><span class="ban-id-tag" id="sancId">ID: 0</span></div>
+            <div class="modal-sub">Choisis une durée puis la raison, ou expulse directement.</div>
+            <div class="modal-field"><label>Durée du ban</label><div class="dur-grid" id="durGrid"></div></div>
+            <div class="modal-field"><input type="text" class="form-input" id="inDuration" placeholder="Durée personnalisée (ex: 2h, 3j, 1m, 0 = perm)"></div>
+            <div class="modal-field"><input type="text" class="form-input" id="inReason" placeholder="Raison de la sanction..."></div>
+            <div class="modal-actions">
+                <button class="modal-btn cancel-m" onclick="cancelBan()">Annuler</button>
+                <button class="modal-btn kick-m hidden" id="btnKick" onclick="doKick()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg> Expulser</button>
+                <button class="modal-btn ban-m" id="btnBan" onclick="doBan()" disabled><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 12l10 5 10-5"/></svg> Bannir</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="editModal">
+        <div class="modal">
+            <div class="modal-title">&#9998; Modifier le ban <span class="ban-id-tag" id="editBanId">-</span></div>
+            <div class="modal-sub" id="editBanPlayer">-</div>
+            <div class="modal-field"><label>Nouvelle durée</label><input type="text" id="editDuration" placeholder="Ex: 2h, 3j, 1m, 0 (perm) — vide = inchangé"><div class="current" id="editCurrentDur">Actuel: -</div></div>
+            <div class="modal-field"><label>Nouvelle raison</label><textarea id="editReason" placeholder="Vide = inchangé" rows="2"></textarea><div class="current" id="editCurrentReason">Actuelle: -</div></div>
+            <div class="confirm-bar" id="confirmUnbanBar"><span>&#9888; Confirmer le unban ?</span><div class="confirm-btns"><button class="confirm-yes" onclick="confirmUnban()">Oui, Unban</button><button class="confirm-no" onclick="hideConfirmUnban()">Annuler</button></div></div>
+            <div class="modal-actions">
+                <button class="modal-btn cancel-m" onclick="closeEditModal()">Annuler</button>
+                <button class="modal-btn unban-m" id="editUnbanBtn" onclick="showConfirmUnban()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> Unban</button>
+                <button class="modal-btn save-m" onclick="saveEdit()">Sauvegarder</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="gradeModal">
+        <div class="modal">
+            <div class="modal-title">&#10133; Nouveau grade</div>
+            <div class="modal-sub">Lié à une permission ACE OU à un rôle Discord</div>
+            <div class="modal-field"><label>Nom affiché</label><input type="text" id="gradeLabel" placeholder="Ex: Helper, Responsable..."></div>
+            <div class="modal-field"><label>Clé interne (minuscules, sans espace)</label><input type="text" id="gradeKey" placeholder="Ex: helper" oninput="syncAce()"></div>
+            <div class="modal-field"><label>Permission ACE</label><input type="text" id="gradeAce" placeholder="freshban.helper"><div class="current">server.cfg : add_ace group.X &lt;ace&gt; allow</div></div>
+            <div class="modal-field"><label>Couleur</label><input type="color" id="gradeColor" value="#888888" class="native-color" style="width:100%;height:44px"></div>
+            <div class="modal-actions">
+                <button class="modal-btn cancel-m" onclick="closeGradeModal()">Annuler</button>
+                <button class="modal-btn save-m" onclick="createGrade()">Créer le grade</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="notif-wrap" id="notifWrap"></div>
+<script>
+(function(){
+    'use strict';
+    var players=[], banListData=[], gradeInfo={}, configInfo={}, appearance={}, discordProfile=null;
+    var durationsList=[], settings=null;
+    var selected=null, pickedDur=null, editingBan=null, currentTab='players';
+    var filters={nearby:false,new:false}, banFilters={active:false,perm:false};
+
+    var $=function(id){return document.getElementById(id)};
+    function esc(t){var d=document.createElement('div');d.textContent=(t==null?'':t);return d.innerHTML}
+    function post(name,body){fetch('https://freshban/'+name,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})}).catch(function(){})}
+
+    window.addEventListener('message',function(e){
+        var d=e.data;
+        switch(d.action){
+            case 'openMenu': onOpen(d); break;
+            case 'updatePlayers': players=d.players||[]; renderPlayers(); break;
+            case 'updateBanList': banListData=d.bans||[]; renderBans(); break;
+            case 'updateSettings': settings=d.settings; renderGrades(); renderSettings(); break;
+            case 'updateAppearance': applyAppearance(d.appearance); break;
+            case 'notification': showNotif(d.notifType,d.message); break;
+            case 'closeMenu': hardClose(); break;
+        }
+    });
+
+    function onOpen(d){
+        players=d.players||[]; gradeInfo=d.grade||{}; configInfo=d.config||{};
+        durationsList=d.durations||[]; appearance=d.appearance||{}; discordProfile=d.discord||null;
+        applyAppearance(appearance);
+        $('app').classList.add('open');
+        setupProfile(); setupNav(); buildDurations(); renderPlayers();
+        var initTab=(d.tab==='bans'&&gradeInfo.canViewBanList)?'bans':'players';
+        // Splash Discord si activé
+        var splash=$('splash');
+        if(configInfo.discordEnabled){
+            splash.classList.remove('hide'); splash.classList.add('show');
+            setTimeout(function(){switchTab(initTab)},50);
+            setTimeout(function(){splash.classList.add('hide')},1100);
+            setTimeout(function(){splash.classList.remove('show','hide')},1650);
+        }else{
+            splash.classList.remove('show');
+            switchTab(initTab);
+        }
+    }
+
+    function hexRGB(hex){var m=(hex||'').replace('#','').match(/.{2}/g);if(!m)return[18,20,28];return[parseInt(m[0],16),parseInt(m[1],16),parseInt(m[2],16)]}
+    function applyAppearance(a){
+        if(!a)return;
+        var root=document.documentElement;
+        if(a.primary) root.style.setProperty('--accent',a.primary);
+        if(a.accent) root.style.setProperty('--accent-2',a.accent);
+        var mode=a.bgMode||a.BackgroundMode||'glass';
+        var bgColor=a.bgColor||a.BackgroundColor||'#14161e';
+        var alpha=(a.glassAlpha!=null?a.glassAlpha:(a.GlassAlpha!=null?a.GlassAlpha:0.30));
+        var app=$('app');
+        if(mode==='solid'){
+            var rgb=hexRGB(bgColor);
+            root.style.setProperty('--glass-r',rgb[0]);root.style.setProperty('--glass-g',rgb[1]);root.style.setProperty('--glass-b',rgb[2]);
+            root.style.setProperty('--glass-a','1');
+            app.classList.add('solid-bg');
+        }else{
+            root.style.setProperty('--glass-r',18);root.style.setProperty('--glass-g',20);root.style.setProperty('--glass-b',28);
+            root.style.setProperty('--glass-a',String(alpha));
+            app.classList.remove('solid-bg');
+        }
+    }
+    // compatibilité
+    function applyAccent(p,a){applyAppearance({primary:p,accent:a})}
+
+    // Carte profil (Discord ou repli)
+    function setupProfile(){
+        var label=gradeInfo.label||'Staff';
+        $('profileGrade').textContent=label;
+        $('profileDot').style.color=gradeInfo.color||'#888';
+        $('profileDot').style.background=gradeInfo.color||'#888';
+        var av=$('profileAv');
+        if(discordProfile&&discordProfile.avatar){
+            $('profileName').textContent=discordProfile.username||label;
+            av.innerHTML='<img src="'+esc(discordProfile.avatar)+'" alt=""><span class="dc-badge"><svg viewBox="0 0 24 24"><path d="M20.317 4.369a19.79 19.79 0 00-4.885-1.515.074.074 0 00-.079.037c-.211.375-.444.865-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.1 13.1 0 01-1.872-.892.077.077 0 01-.008-.128 10 10 0 00.372-.291.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.009c.12.099.246.198.373.292a.077.077 0 01-.006.127 12.3 12.3 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.84 19.84 0 006.002-3.03.077.077 0 00.032-.056c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.028zM8.02 15.331c-1.183 0-2.157-1.086-2.157-2.42 0-1.332.955-2.42 2.157-2.42 1.21 0 2.176 1.098 2.157 2.42 0 1.334-.956 2.42-2.157 2.42zm7.975 0c-1.183 0-2.157-1.086-2.157-2.42 0-1.332.955-2.42 2.157-2.42 1.21 0 2.176 1.098 2.157 2.42 0 1.334-.946 2.42-2.157 2.42z"/></svg></span>';
+        }else{
+            var pseudo=gradeInfo.playerName||label;
+            $('profileName').textContent=pseudo;
+            av.textContent=(pseudo.substring(0,2)||'FB').toUpperCase();
+        }
+        $('devPill').classList.toggle('show',!!(configInfo&&configInfo.devMode));
+    }
+
+    function setupNav(){
+        $('navBansBtn').classList.toggle('hidden',!gradeInfo.canViewBanList);
+        $('navGradesBtn').classList.toggle('hidden',!gradeInfo.canManagePanel);
+        $('navSettingsBtn').classList.toggle('hidden',!gradeInfo.canManagePanel);
+    }
+
+    var TAB_META={
+        players:{title:'Joueurs',sub:'Gérez les joueurs connectés'},
+        bans:{title:'Bannissements',sub:'Historique et gestion des sanctions'},
+        grades:{title:'Grades & Permissions',sub:'Configurez les droits de chaque grade'},
+        settings:{title:'Paramètres',sub:'Discord, webhooks & apparence'}
+    };
+    window.switchTab=function(tab){
+        if(tab==='bans'&&!gradeInfo.canViewBanList)return;
+        if((tab==='grades'||tab==='settings')&&!gradeInfo.canManagePanel)return;
+        currentTab=tab;
+        document.querySelectorAll('.nav-item').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-tab')===tab)});
+        document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
+        $('page'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('active');
+        $('pageTitle').textContent=TAB_META[tab].title;
+        $('pageSub').textContent=TAB_META[tab].sub;
+        if(tab==='bans'&&banListData.length===0) post('fetchBanList');
+        if((tab==='grades'||tab==='settings')&&!settings) post('fetchSettings');
+    };
+
+    function buildDurations(){
+        var grid=$('durGrid'); grid.innerHTML='';
+        durationsList.forEach(function(d){
+            var btn=document.createElement('button'),isPerm=d.value==='0';
+            btn.className='dur-btn'+(isPerm?' perm-btn':''); btn.textContent=d.label;
+            btn.onclick=function(){document.querySelectorAll('.dur-btn').forEach(function(b){b.classList.remove('on')});btn.classList.add('on');pickedDur=d.value;$('inDuration').value='';validate()};
+            grid.appendChild(btn);
+        });
+    }
+    window.renderPlayers=function(){
+        var c=$('playerList'),q=$('searchPlayers').value.toLowerCase(),nr=(configInfo&&configInfo.nearbyRadius)||500;
+        var f=players.filter(function(p){
+            if(q&&p.name.toLowerCase().indexOf(q)===-1&&String(p.id).indexOf(q)===-1)return false;
+            if(filters.nearby&&p.distance>nr)return false;
+            if(filters.new&&!p.isNew)return false; return true;
+        });
+        f.sort(function(a,b){if(a.isSelf&&!b.isSelf)return -1;if(!a.isSelf&&b.isSelf)return 1;if(filters.nearby)return(a.distance||0)-(b.distance||0);if(a.isNew&&!b.isNew)return -1;if(!a.isNew&&b.isNew)return 1;return a.name.localeCompare(b.name)});
+        $('counterPlayers').textContent=f.length+'/'+players.length;
+        $('navPlayers').textContent=players.length;
+        if(!f.length){c.innerHTML=emptyHtml('Aucun joueur trouvé');return}
+        var frag=document.createDocumentFragment();
+        f.forEach(function(p,i){
+            var card=document.createElement('div'),isSelf=p.isSelf,isAct=selected&&selected.id===p.id;
+            card.className='card'+(isSelf?' self-card':'')+(isAct?' active':'');
+            card.style.animation='fadeUp .3s ease '+(Math.min(i,15)*.025)+'s both';
+            var ini=p.name.substring(0,2).toUpperCase(),isNear=p.distance>=0&&p.distance<=nr,distT=p.distance<0?'?':(isSelf?'-':Math.round(p.distance)+'m');
+            var tags=''; if(isSelf)tags+='<span class="tag tag-self">VOUS</span>'; if(p.isNew)tags+='<span class="tag tag-new">NEW</span>'; if(isSelf&&configInfo&&configInfo.devMode)tags+='<span class="tag tag-dev">TEST</span>';
+            card.innerHTML='<div class="avatar">'+esc(ini)+'</div><div class="info"><div class="name-row"><span class="name">'+esc(p.name)+'</span>'+tags+'</div><div class="meta"><span>ID: '+p.id+'</span><span>'+p.ping+'ms</span>'+(p.minutesSinceJoin>=0?'<span>'+p.minutesSinceJoin+'min</span>':'')+'</div></div><span class="dist '+(isNear&&!isSelf?'near':'')+'">'+distT+'</span>';
+            card.onclick=function(){if(isSelf&&!(configInfo&&configInfo.devMode))return;selectPlayer(p)};
+            frag.appendChild(card);
+        });
+        c.innerHTML=''; c.appendChild(frag);
+    };
+    function selectPlayer(p){selected=p;pickedDur=null;$('inDuration').value='';$('inReason').value='';document.querySelectorAll('.dur-btn').forEach(function(b){b.classList.remove('on')});$('sancName').textContent=p.name;$('sancId').textContent='ID: '+p.id;$('sancAv').textContent=(p.name.substring(0,2)||'').toUpperCase();$('btnKick').classList.toggle('hidden',!gradeInfo.canKick);$('sanctionModal').classList.add('show');renderPlayers();validate()}
+    window.cancelBan=function(){selected=null;pickedDur=null;$('sanctionModal').classList.remove('show');$('inReason').value='';$('inDuration').value='';document.querySelectorAll('.dur-btn').forEach(function(b){b.classList.remove('on')});renderPlayers()};
+    window.toggleF=function(t){filters[t]=!filters[t];$(t==='nearby'?'fNearby':'fNew').classList.toggle('on');renderPlayers()};
+    window.validate=function(){var r=$('inReason').value.trim(),cu=$('inDuration').value.trim();$('btnBan').disabled=!selected||!(pickedDur||cu)||!r};
+    document.addEventListener('input',function(e){if(e.target.id==='inReason'||e.target.id==='inDuration'){if(e.target.id==='inDuration'&&e.target.value.trim()){pickedDur=null;document.querySelectorAll('.dur-btn').forEach(function(b){b.classList.remove('on')})}validate()}});
+    window.doBan=function(){if(!selected)return;var r=$('inReason').value.trim(),cu=$('inDuration').value.trim(),dur=cu||pickedDur;if(!dur||!r)return;post('banPlayer',{targetId:selected.id,duration:dur,reason:r});var nm=selected.name;cancelBan();showNotif('success',nm+' banni.')};
+    window.doKick=function(){if(!selected)return;var r=$('inReason').value.trim();post('kickPlayer',{targetId:selected.id,reason:r});showNotif('success',selected.name+' expulsé.');cancelBan()};
+
+    // BANS
+    window.renderBans=function(){
+        var c=$('banList'),q=$('searchBans').value.toLowerCase();
+        var f=banListData.filter(function(b){
+            if(q&&b.playerName.toLowerCase().indexOf(q)===-1&&b.banId.toLowerCase().indexOf(q)===-1&&(b.reason||'').toLowerCase().indexOf(q)===-1&&(b.staffName||'').toLowerCase().indexOf(q)===-1)return false;
+            if(banFilters.active&&!b.isActive)return false;
+            if(banFilters.perm&&!b.isPermanent)return false; return true;
+        });
+        var activeCount=banListData.filter(function(b){return b.isActive}).length;
+        $('counterBans').textContent=f.length+' ban(s)';
+        $('navBans').textContent=activeCount;
+        if(!f.length){c.innerHTML=emptyHtml('Aucun ban trouvé');return}
+        var frag=document.createDocumentFragment();
+        f.forEach(function(b,i){
+            var card=document.createElement('div');
+            card.className='ban-card'+(b.isActive?'':' inactive');
+            card.style.animationDelay=(Math.min(i,15)*.03)+'s';
+            var sc='expired-ban',st='Expiré';
+            if(b.isActive&&b.isPermanent){sc='perm-ban';st='PERMANENT'}
+            else if(b.isActive){sc='active-ban';st='Actif'}
+            else if(!b.isActive){sc='unbanned';st='Unban'}
+            var acts='';
+            if(b.isActive&&gradeInfo.canEditBan)acts+='<button class="ban-act-btn edit-btn" data-ban="'+esc(b.banId)+'">&#9998; Modifier</button>';
+            if(b.isActive&&gradeInfo.canUnban)acts+='<button class="ban-act-btn unban-btn" data-ban="'+esc(b.banId)+'">&#10003; Unban</button>';
+            var timeInfo=b.isPermanent?'PERMANENT':(b.timeLeft||b.durationLabel||'-');
+            card.innerHTML='<div class="ban-top"><div class="ban-player">'+esc(b.playerName)+' <span class="ban-id-tag">'+esc(b.banId)+'</span> <span class="ban-status '+sc+'">'+st+'</span></div><div class="ban-actions">'+acts+'</div></div>'+
+            '<div class="ban-details"><div class="ban-detail"><span class="ban-detail-label">Staff</span><span class="ban-detail-value">'+esc(b.staffName)+'</span></div><div class="ban-detail"><span class="ban-detail-label">Durée</span><span class="ban-detail-value">'+esc(b.durationLabel)+'</span></div><div class="ban-detail"><span class="ban-detail-label">Restant</span><span class="ban-detail-value">'+esc(timeInfo)+'</span></div><div class="ban-detail"><span class="ban-detail-label">Date</span><span class="ban-detail-value">'+esc(b.bannedAt||'-')+'</span></div></div>'+
+            '<div class="ban-reason">'+esc(b.reason)+'</div>';
+            card.querySelectorAll('[data-ban]').forEach(function(btn){btn.onclick=function(){openEditModal(btn.getAttribute('data-ban'))}});
+            frag.appendChild(card);
+        });
+        c.innerHTML=''; c.appendChild(frag);
+    };
+    window.toggleBanFilter=function(t){banFilters[t]=!banFilters[t];$(t==='active'?'fActiveOnly':'fPermOnly').classList.toggle('on');renderBans()};
+
+    window.openEditModal=function(banId){
+        editingBan=null;
+        for(var i=0;i<banListData.length;i++){if(banListData[i].banId===banId){editingBan=banListData[i];break}}
+        if(!editingBan)return;
+        $('editBanId').textContent=editingBan.banId;
+        $('editBanPlayer').textContent=editingBan.playerName+' — banni par '+editingBan.staffName;
+        $('editDuration').value=''; $('editReason').value='';
+        $('editCurrentDur').textContent='Actuel: '+editingBan.durationLabel+(editingBan.timeLeft?' (reste: '+editingBan.timeLeft+')':'');
+        $('editCurrentReason').textContent='Actuelle: '+editingBan.reason;
+        $('confirmUnbanBar').classList.remove('show');
+        $('editUnbanBtn').style.display=gradeInfo.canUnban?'flex':'none';
+        $('editModal').classList.add('show');
+    };
+    window.closeEditModal=function(){$('editModal').classList.remove('show');editingBan=null};
+    window.saveEdit=function(){
+        if(!editingBan)return;
+        var nd=$('editDuration').value.trim()||null, nr=$('editReason').value.trim()||null;
+        if(!nd&&!nr){showNotif('info','Rien à modifier.');return}
+        var id=editingBan.banId;
+        post('editBan',{banId:id,newDuration:nd,newReason:nr});
+        for(var i=0;i<banListData.length;i++){if(banListData[i].banId===id){if(nr)banListData[i].reason=nr;if(nd){banListData[i].durationLabel=nd==='0'?'PERMANENT':nd;banListData[i].isPermanent=(nd==='0');banListData[i].timeLeft=nd==='0'?null:nd}break}}
+        closeEditModal(); renderBans(); showNotif('success','Ban '+id+' modifié.');
+        setTimeout(function(){post('fetchBanList')},800);
+    };
+    window.showConfirmUnban=function(){$('confirmUnbanBar').classList.add('show')};
+    window.hideConfirmUnban=function(){$('confirmUnbanBar').classList.remove('show')};
+    window.confirmUnban=function(){
+        if(!editingBan)return; var id=editingBan.banId, nm=editingBan.playerName;
+        post('unbanFromPanel',{banId:id});
+        for(var i=0;i<banListData.length;i++){if(banListData[i].banId===id){banListData[i].isActive=false;banListData[i].timeLeft=null;break}}
+        closeEditModal(); renderBans(); showNotif('success',nm+' ('+id+') a été unban.');
+        setTimeout(function(){post('fetchBanList')},800);
+    };
+
+    // GRADES
+    window.renderGrades=function(){
+        var c=$('gradesList');
+        if(!settings||!settings.grades){c.innerHTML=emptyHtml('Chargement...');return}
+        if(!settings.grades.length){c.innerHTML=emptyHtml('Aucun grade');return}
+        var pk=settings.permissionKeys||[];
+        var frag=document.createDocumentFragment();
+        settings.grades.forEach(function(g,gi){
+            var card=document.createElement('div'); card.className='grade-card'; card.style.animationDelay=(gi*.04)+'s';
+            var head='<div class="grade-head"><span class="grade-dot" style="background:'+esc(g.color)+';color:'+esc(g.color)+'"></span><span class="grade-name">'+esc(g.label)+'</span><span class="grade-key">'+esc(g.key)+'</span><span class="grade-ace">'+esc(g.acePermission||'')+'</span>'+(g.isCustom?'<button class="grade-del" title="Supprimer" data-del="'+esc(g.key)+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>':'')+'</div>';
+            var toggles='';
+            pk.forEach(function(p){
+                var on=g.permissions[p.key]===true;
+                toggles+='<div class="perm-toggle'+(on?' on':'')+'" data-grade="'+esc(g.key)+'" data-perm="'+esc(p.key)+'"><div class="sw"></div><div class="perm-txt"><div class="perm-label">'+esc(p.label)+'</div><div class="perm-desc">'+esc(p.desc)+'</div></div></div>';
+            });
+            var body='<div class="grade-body"><div class="perm-grid">'+toggles+'</div><div class="grade-foot"><div class="maxdur-wrap"><label>Durée max (min, 0=∞)</label><input type="number" min="0" class="maxdur-input" data-maxdur="'+esc(g.key)+'" value="'+(g.maxDuration||0)+'"></div><button class="btn-save-grade" data-save="'+esc(g.key)+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg> Sauvegarder</button></div></div>';
+            card.innerHTML=head+body;
+            frag.appendChild(card);
+        });
+        c.innerHTML=''; c.appendChild(frag);
+        c.querySelectorAll('.perm-toggle').forEach(function(t){t.onclick=function(){t.classList.toggle('on')}});
+        c.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){post('deleteGrade',{gradeKey:b.getAttribute('data-del')})}});
+        c.querySelectorAll('[data-save]').forEach(function(b){b.onclick=function(){saveGrade(b.getAttribute('data-save'),b)}});
+    };
+    function saveGrade(key,btn){
+        var perms={};
+        document.querySelectorAll('.perm-toggle[data-grade="'+CSS.escape(key)+'"]').forEach(function(t){perms[t.getAttribute('data-perm')]=t.classList.contains('on')});
+        var mdEl=document.querySelector('.maxdur-input[data-maxdur="'+CSS.escape(key)+'"]');
+        var md=mdEl?parseInt(mdEl.value,10):0; if(isNaN(md)||md<0)md=0;
+        post('saveGradePermissions',{gradeKey:key,permissions:perms,maxDuration:md});
+        if(btn){btn.classList.add('saved');var old=btn.innerHTML;btn.innerHTML='&#10003; Sauvegardé';setTimeout(function(){btn.classList.remove('saved');btn.innerHTML=old},1500)}
+    }
+    window.openGradeModal=function(){$('gradeLabel').value='';$('gradeKey').value='';$('gradeAce').value='';$('gradeColor').value='#888888';$('gradeModal').classList.add('show')};
+    window.closeGradeModal=function(){$('gradeModal').classList.remove('show')};
+    window.syncAce=function(){var k=$('gradeKey').value.toLowerCase().replace(/[^a-z0-9_]/g,'');$('gradeKey').value=k;if(k)$('gradeAce').value='freshban.'+k};
+    window.createGrade=function(){
+        var label=$('gradeLabel').value.trim(),key=$('gradeKey').value.trim(),ace=$('gradeAce').value.trim(),color=$('gradeColor').value;
+        if(!label||!key){showNotif('error','Nom et clé requis.');return}
+        post('addGrade',{label:label,key:key,acePermission:ace,color:color});
+        closeGradeModal();
+    };
+
+    // PARAMÈTRES
+    window.renderSettings=function(){
+        var c=$('settingsScroll');
+        if(!settings){c.innerHTML=emptyHtml('Chargement...');return}
+        var wh=settings.webhooks||{}, ap=settings.appearance||{}, presets=settings.presets||[];
+        var primary=ap.PrimaryColor||ap.primary||'#e85d75', accent=ap.AccentColor||ap.accent||'#f0a050';
+        var dcEnabled=settings.discordEnabled;
+
+        var bgMode=ap.BackgroundMode||ap.bgMode||'glass';
+        var bgColor=ap.BackgroundColor||ap.bgColor||'#14161e';
+        var glassAlpha=(ap.GlassAlpha!=null?ap.GlassAlpha:(ap.glassAlpha!=null?ap.glassAlpha:0.30));
+
+        var html='';
+        html+='<div class="settings-block"><div class="settings-block-head"><h4>🎨 Apparence</h4><p>Couleur d\'accent, fond du panel — appliqué à tout le staff</p></div><div class="settings-block-body">';
+        html+='<div class="field"><label>Couleur d\'accent</label><div class="color-row"><div class="color-preview" id="colorPrev" style="background:'+esc(primary)+'"></div><div class="presets" id="presetRow"></div><input type="color" id="nativeColor" class="native-color" value="'+esc(primary)+'"></div></div>';
+        html+='<div class="field"><label>Fond du panel</label><div class="bg-modes">';
+        html+='<div class="bg-mode glass-m'+(bgMode==="glass"?" on":"")+'" id="bgGlass"><div class="bgm-ic"></div><div class="bgm-t">Liquid Glass</div><div class="bgm-d">Transparent + jeu flouté derrière</div></div>';
+        html+='<div class="bg-mode solid-m'+(bgMode==="solid"?" on":"")+'" id="bgSolid"><div class="bgm-ic"></div><div class="bgm-t">Couleur unie</div><div class="bgm-d">Fond RGB personnalisé</div></div>';
+        html+='</div></div>';
+        html+='<div class="field" id="glassOpacityField"><label>Transparence du verre <span class="hint">(bas = plus transparent)</span></label><div class="slider-row"><input type="range" id="glassSlider" min="10" max="80" value="'+Math.round(glassAlpha*100)+'"><span class="slider-val" id="glassVal">'+Math.round(glassAlpha*100)+'%</span></div></div>';
+        html+='<div class="field" id="bgColorField"><label>Couleur du fond (RGB)</label><div class="color-row"><div class="color-preview" id="bgColorPrev" style="background:'+esc(bgColor)+'"></div><input type="color" id="bgColorInput" class="native-color" value="'+esc(bgColor)+'" style="width:60px;height:44px"><input type="text" id="bgColorHex" class="form-input" style="max-width:140px" value="'+esc(bgColor)+'"></div></div>';
+        html+='<div class="settings-actions"><button class="btn-solid" id="saveAppearanceBtn">Appliquer &amp; Sauvegarder</button></div></div></div>';
+
+        html+='<div class="settings-block"><div class="settings-block-head"><h4>💬 Rôles Discord → Grades</h4><p>Donne un grade à ceux qui ont le rôle Discord. Plus besoin de licence.</p></div><div class="settings-block-body">';
+        if(dcEnabled){
+            html+='<div id="discordRoleList"></div><div class="add-row"><input type="text" id="dcRoleId" placeholder="ID du rôle Discord (ex: 123456789012345678)"><select id="dcRoleGrade"></select><button class="btn-solid discord-btn" id="addDcRoleBtn">Lier</button></div>';
+        }else{
+            html+='<div class="disabled-note">L\'intégration Discord n\'est pas activée.<br>Active-la dans <b>config.lua</b> → <code>FreshBan.DiscordBot.Enabled = true</code> (token + ID serveur requis).</div>';
+        }
+        html+='</div></div>';
+
+        html+='<div class="settings-block"><div class="settings-block-head"><h4>🔗 Webhooks Discord</h4><p>Une URL par type d\'action. Vide = utilise le webhook global.</p></div><div class="settings-block-body">';
+        html+=whField('Global (défaut)','wh_global',wh.global);
+        html+=whField('Bans','wh_ban',wh.ban);
+        html+=whField('Unbans','wh_unban',wh.unban);
+        html+=whField('Kicks / reconnexions','wh_kick',wh.kick);
+        html+=whField('Logs admin (config)','wh_admin',wh.admin);
+        html+='<div class="settings-actions"><button class="btn-ghost" id="testWebhookBtn">Tester le global</button><button class="btn-solid" id="saveWebhooksBtn">Sauvegarder</button></div></div></div>';
+
+        html+='<div class="settings-block"><div class="settings-block-head"><h4>🪪 Staff par identifiant</h4><p>Méthode avancée (license/discord/steam). Optionnel si tu utilises les rôles Discord.</p></div><div class="settings-block-body">';
+        html+='<span class="advanced-toggle" id="advToggle">▸ Afficher l\'assignation par identifiant</span><div class="advanced-box" id="advBox"><div id="staffList"></div><div class="add-row"><input type="text" id="staffIdf" placeholder="license:xxx / discord:xxx / steam:xxx"><select id="staffGrade"></select><button class="btn-solid" id="addStaffBtn">Ajouter</button></div></div>';
+        html+='</div></div>';
+
+        c.innerHTML=html;
+
+        var pr=$('presetRow');
+        presets.forEach(function(col){
+            var d=document.createElement('div'); d.className='preset'+(col.toLowerCase()===primary.toLowerCase()?' sel':''); d.style.background=col; d.title=col;
+            d.onclick=function(){setColor(col)};
+            pr.appendChild(d);
+        });
+        $('nativeColor').oninput=function(){setColor(this.value)};
+        function setColor(col){$('colorPrev').style.background=col;$('nativeColor').value=col;applyAppearance({primary:col,accent:accent});document.querySelectorAll('.preset').forEach(function(p){p.classList.toggle('sel',p.style.background&&rgbToHex(p.style.background).toLowerCase()===col.toLowerCase())})}
+
+        var curBgMode=bgMode, curBgColor=bgColor, curAlpha=glassAlpha;
+        function refreshBgFields(){
+            $('glassOpacityField').style.display=(curBgMode==='glass')?'block':'none';
+            $('bgColorField').style.display=(curBgMode==='solid')?'block':'none';
+            $('bgGlass').classList.toggle('on',curBgMode==='glass');
+            $('bgSolid').classList.toggle('on',curBgMode==='solid');
+        }
+        function previewBg(){applyAppearance({primary:$('nativeColor').value,accent:accent,bgMode:curBgMode,bgColor:curBgColor,glassAlpha:curAlpha})}
+        refreshBgFields(); 
+        $('bgGlass').onclick=function(){curBgMode='glass';refreshBgFields();previewBg();post('previewBgMode',{bgMode:'glass'})};
+        $('bgSolid').onclick=function(){curBgMode='solid';refreshBgFields();previewBg();post('previewBgMode',{bgMode:'solid'})};
+        $('glassSlider').oninput=function(){curAlpha=parseInt(this.value,10)/100;$('glassVal').textContent=this.value+'%';previewBg()};
+        function setBgColor(col){curBgColor=col;$('bgColorPrev').style.background=col;$('bgColorInput').value=col;$('bgColorHex').value=col;previewBg()}
+        $('bgColorInput').oninput=function(){setBgColor(this.value)};
+        $('bgColorHex').oninput=function(){var v=this.value.trim();if(/^#[0-9a-fA-F]{6}$/.test(v))setBgColor(v)};
+
+        $('saveAppearanceBtn').onclick=function(){var col=$('nativeColor').value;post('saveAppearance',{primary:col,accent:accent,bgMode:curBgMode,bgColor:curBgColor,glassAlpha:curAlpha});flash(this,'Sauvegardé')};
+
+        $('saveWebhooksBtn').onclick=function(){post('saveWebhooks',collectWebhooks(false));flash(this,'Sauvegardé')};
+        $('testWebhookBtn').onclick=function(){post('saveWebhooks',collectWebhooks(true))};
+
+        function fillGradeSelect(sel){if(!sel)return;sel.innerHTML='';(settings.grades||[]).forEach(function(g){var o=document.createElement('option');o.value=g.key;o.textContent=g.label;sel.appendChild(o)})}
+
+        if(dcEnabled){
+            renderDiscordRoles();
+            fillGradeSelect($('dcRoleGrade'));
+            $('addDcRoleBtn').onclick=function(){var rid=$('dcRoleId').value.trim(),gr=$('dcRoleGrade').value;if(!rid){showNotif('error','ID de rôle requis.');return}post('addDiscordRole',{roleId:rid,gradeKey:gr});$('dcRoleId').value=''};
+        }
+
+        renderStaffList();
+        fillGradeSelect($('staffGrade'));
+        $('advToggle').onclick=function(){var box=$('advBox');box.classList.toggle('show');this.textContent=(box.classList.contains('show')?'▾ Masquer':'▸ Afficher')+' l\'assignation par identifiant'};
+        $('addStaffBtn').onclick=function(){var idf=$('staffIdf').value.trim(),gr=$('staffGrade').value;if(!idf){showNotif('error','Identifiant requis.');return}post('addStaff',{identifier:idf,gradeKey:gr,displayName:idf});$('staffIdf').value=''};
+    };
+    function whField(label,id,val){return '<div class="field"><label>'+label+'</label><input type="text" id="'+id+'" placeholder="https://discord.com/api/webhooks/..." value="'+esc(val||'')+'"></div>'}
+    function collectWebhooks(test){return {global:$('wh_global').value.trim(),ban:$('wh_ban').value.trim(),unban:$('wh_unban').value.trim(),kick:$('wh_kick').value.trim(),admin:$('wh_admin').value.trim(),test:test}}
+    function gradeMeta(){var m={};(settings.grades||[]).forEach(function(g){m[g.key]={c:g.color,l:g.label}});return m}
+    function renderDiscordRoles(){
+        var el=$('discordRoleList'); if(!el)return;
+        var list=settings.discordRoles||[], gm=gradeMeta();
+        if(!list.length){el.innerHTML='<div style="font-size:12px;color:var(--text-muted);padding:6px 2px">Aucun rôle lié. Ajoute un ID de rôle ci-dessous.</div>';return}
+        el.innerHTML='';
+        list.forEach(function(r){
+            var gc=gm[r.gradeKey]||{c:'#888',l:r.gradeKey};
+            var row=document.createElement('div'); row.className='assign-row';
+            row.innerHTML='<span class="assign-main">🎭 '+esc(r.roleId)+'</span><span class="assign-badge" style="background:'+hexSoft(gc.c)+';color:'+esc(gc.c)+'">'+esc(gc.l)+'</span>'+(r.fromConfig?'<span class="assign-lock">config.lua</span>':'<button class="assign-del" data-role="'+esc(r.roleId)+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>');
+            var del=row.querySelector('[data-role]'); if(del)del.onclick=function(){post('removeDiscordRole',{roleId:r.roleId})};
+            el.appendChild(row);
+        });
+    }
+    function renderStaffList(){
+        var el=$('staffList'); if(!el)return;
+        var list=settings.staff||[], gm=gradeMeta();
+        if(!list.length){el.innerHTML='<div style="font-size:12px;color:var(--text-muted);padding:6px 2px">Aucun staff assigné par identifiant.</div>';return}
+        el.innerHTML='';
+        list.forEach(function(s){
+            var gc=gm[s.gradeKey]||{c:'#888',l:s.gradeKey};
+            var row=document.createElement('div'); row.className='assign-row';
+            row.innerHTML='<span class="assign-main">'+esc(s.displayName||s.identifier)+'</span><span class="assign-badge" style="background:'+hexSoft(gc.c)+';color:'+esc(gc.c)+'">'+esc(gc.l)+'</span><button class="assign-del" data-idf="'+esc(s.identifier)+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>';
+            row.querySelector('[data-idf]').onclick=function(){post('removeStaff',{identifier:s.identifier})};
+            el.appendChild(row);
+        });
+    }
+    function flash(btn,txt){var old=btn.innerHTML;btn.classList.add('saved');btn.innerHTML='&#10003; '+txt;setTimeout(function(){btn.classList.remove('saved');btn.innerHTML=old},1500)}
+
+    function emptyHtml(txt){return '<div class="empty"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><div class="empty-text">'+esc(txt)+'</div></div>'}
+    function rgbToHex(rgb){var m=rgb.match(/\d+/g);if(!m)return rgb;return '#'+m.slice(0,3).map(function(x){var h=parseInt(x).toString(16);return h.length===1?'0'+h:h}).join('')}
+    function hexSoft(hex){var m=hex.replace('#','').match(/.{2}/g);if(!m)return 'rgba(136,136,136,.15)';return 'rgba('+parseInt(m[0],16)+','+parseInt(m[1],16)+','+parseInt(m[2],16)+',.15)'}
+
+    window.doRefresh=function(){var btn=$('btnRefresh');btn.classList.add('spinning');setTimeout(function(){btn.classList.remove('spinning')},700);
+        if(currentTab==='players')post('refreshPlayers');
+        else if(currentTab==='bans')post('fetchBanList');
+        else post('fetchSettings');
+    };
+    function hardClose(){$('app').classList.remove('open');resetAll()}
+    window.doClose=function(){hardClose();post('closeFreshBan')};
+    document.addEventListener('keydown',function(e){if(e.key==='Escape'){if($('sanctionModal').classList.contains('show')){cancelBan()}else if($('editModal').classList.contains('show')){closeEditModal()}else if($('gradeModal').classList.contains('show')){closeGradeModal()}else{doClose()}}});
+
+    window.showNotif=function(type,msg){var w=$('notifWrap'),el=document.createElement('div');el.className='notif '+(type||'info');el.innerHTML='<span class="nd"></span>'+esc(msg||'');w.appendChild(el);setTimeout(function(){if(el.parentNode)el.remove()},5000)};
+    function resetAll(){selected=null;pickedDur=null;filters={nearby:false,new:false};banFilters={active:false,perm:false};editingBan=null;banListData=[];settings=null;$('sanctionModal').classList.remove('show');$('editModal').classList.remove('show');$('gradeModal').classList.remove('show');$('splash').classList.remove('show','hide');document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('on')});document.querySelectorAll('.search-input').forEach(function(i){i.value=''})}
+})();
+
+</script>
+</body>
+</html>
