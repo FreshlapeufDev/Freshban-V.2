@@ -12,7 +12,7 @@
 FreshBan remplace les scripts de ban « fichier texte » et les commandes à rallonge par un
 véritable panel d'administration. Tout se gère depuis l'interface : sanctions, grades,
 permissions, webhooks et apparence. La base de données s'installe seule et la première
-configuration se fait en une commande — pas de SQL à importer, pas d'`add_ace` à écrire.
+configuration se fait en une commande pas de SQL à importer, pas d'`add_ace` à écrire.
 
 ---
 
