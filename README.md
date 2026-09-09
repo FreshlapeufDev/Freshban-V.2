@@ -74,7 +74,7 @@ configuration se fait en une commande pas de SQL à importer, pas d'`add_ace` à
    ```
 3. Démarrez le serveur. Les tables sont créées automatiquement au premier lancement.
 
-C'est tout — aucun fichier SQL à importer manuellement.
+C'est tout aucun fichier SQL à importer manuellement.
 
 ---
 
