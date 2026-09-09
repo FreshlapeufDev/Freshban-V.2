@@ -47,14 +47,18 @@ configuration se fait en une commande pas de SQL à importer, pas d'`add_ace` à
 
 ## Aperçu
 
-> Ajoutez vos captures dans un dossier `docs/` puis référencez-les ici.
-
-```md
+### Joueurs
 ![Joueurs](docs/players.png)
+
+### Bannissements
+![Bannissements](docs/bans.png)
+
+### Grades & Permissions
 ![Grades & Permissions](docs/grades.png)
+
+### Paramètres
 ![Paramètres](docs/settings.png)
-![Ban](docs/bans.png)
-```
+
 
 ---
 
