@@ -148,12 +148,12 @@ Formats de durée acceptés : `30min`, `1h`, `6h`, `1j`, `3j`, `1m`, `0` (perman
 La NUI n'est qu'une interface : elle ne prend **aucune** décision. Chaque clic déclenche un
 événement serveur, et le serveur reste la seule autorité.
 
-- **Revérification systématique** — le grade du joueur est recalculé côté serveur à chaque action sensible.
-- **Liste blanche des permissions** — toute clé de permission inconnue est rejetée.
-- **Validation stricte des entrées** — couleurs hex, URLs de webhook Discord, formats d'identifiants et clés de grade sont contrôlés.
-- **Anti-spam** — limitation de fréquence sur les actions de gestion.
-- **Requêtes paramétrées** — aucune concaténation d'entrées utilisateur dans le SQL.
-- **Journalisation** — bans, unbans, kicks et modifications de configuration sont enregistrés.
+- **Revérification systématique** —> le grade du joueur est recalculé côté serveur à chaque action sensible.
+- **Liste blanche des permissions** —> toute clé de permission inconnue est rejetée.
+- **Validation stricte des entrées** —> couleurs hex, URLs de webhook Discord, formats d'identifiants et clés de grade sont contrôlés.
+- **Anti-spam** —> limitation de fréquence sur les actions de gestion.
+- **Requêtes paramétrées** —> aucune concaténation d'entrées utilisateur dans le SQL.
+- **Journalisation** —> bans, unbans, kicks et modifications de configuration sont enregistrés.
 
 Un cheat qui déclencherait manuellement un événement `freshban:*` sans avoir le grade requis
 est simplement ignoré.
