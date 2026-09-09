@@ -53,6 +53,7 @@ configuration se fait en une commande pas de SQL à importer, pas d'`add_ace` à
 ![Joueurs](docs/players.png)
 ![Grades & Permissions](docs/grades.png)
 ![Paramètres](docs/settings.png)
+![Ban](docs/bans.png)
 ```
 
 ---
