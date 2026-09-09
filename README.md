@@ -33,15 +33,15 @@ configuration se fait en une commande pas de SQL à importer, pas d'`add_ace` à
 
 ## Fonctionnalités
 
-- **Panel complet** — liste des joueurs, historique des bans, gestion des grades et paramètres, le tout dans une seule interface.
-- **Ban IDs uniques** — chaque sanction reçoit un identifiant court (`F0001`) pour un suivi facile.
-- **Sanctions flexibles** — durées prédéfinies ou personnalisées (`30min`, `2h`, `3j`, `1m`, permanent), kick, édition et levée de ban.
-- **Grades & permissions en direct** — activez/désactivez chaque droit par grade, créez vos propres grades, sans redémarrage.
-- **Rôles Discord → grades** — liez un rôle Discord à un grade ; le staff n'a plus besoin de copier des licences.
-- **Webhooks par type d'action** — une URL distincte pour les bans, unbans, kicks et logs admin.
-- **Apparence personnalisable** — couleur d'accent, fond en verre translucide ou couleur unie, réglable à la volée.
-- **Installation automatique** — les tables SQL sont créées au démarrage.
-- **Sécurisé par défaut** — chaque action est revérifiée côté serveur (voir [Sécurité](#sécurité)).
+- **Panel complet** —> liste des joueurs, historique des bans, gestion des grades et paramètres, le tout dans une seule interface.
+- **Ban IDs uniques** —> chaque sanction reçoit un identifiant court par exemple (`F0001`) pour un suivi facile.
+- **Sanctions flexibles** —> durées prédéfinies ou personnalisées (`30min`, `2h`, `3j`, `1m`, permanent), kick, édition et levée de ban.
+- **Grades & permissions en direct** —> activez/désactivez chaque droit par grade, créez vos propres grades, sans redémarrage (reboot) .
+- **Rôles Discord → grades** —> liez un rôle Discord à un grade ; le staff n'a plus besoin de copier des licences.
+- **Webhooks par type d'action** —> une URL distincte pour les bans, unbans, kicks et logs admin.
+- **Apparence personnalisable** —> couleur d'accent, fond en verre translucide ou couleur unie, réglable à la volée.
+- **Installation automatique** —> les tables SQL sont créées au démarrage automatiquement vous n avez rien a faire.
+- **Sécurisé par défaut** —> chaque action est revérifiée côté serveur (voir [Sécurité](#sécurité)).
 
 ---
 
